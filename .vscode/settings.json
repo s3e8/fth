@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "fth_reader.h": "c",
+        "fth_thread.h": "c"
     }
 }

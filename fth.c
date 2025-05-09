@@ -3,11 +3,9 @@
 #include <stddef.h>
 
 #include "fth_cfg.h"
-#include "fth_thread.h"
+#include "fth_dict.h"
 #include "fth_reader.h"
-
-#define STATE_IMMEDIATE 0 // todo: this should probably be in dict.h instead?
-#define STATE_COMPILE   1 //
+#include "fth_thread.h"
 
 /* globals */
 cell state = STATE_IMMEDIATE;
@@ -22,7 +20,32 @@ static void run(
 
     register cell tmp; // placeholder var used in bytecode
 
+    // todo: why initialize like this, rather than init/create_thread?
+    cell*   s0 = ds;
+    void*** r0 = rs;
+    cell*   t0 = NULL;
+    float*  f0 = NULL;
+    cell*   ts = NULL;
+    float*  fs = NULL;
 
+    // void**  nestingstack_space[NESTINGSTACK_MAX_DEPTH];
+    // void*** nestingstack = nestingstack_space + NESTINGSTACK_MAX_DEPTH;
+
+    // void** debuggervector = NULL;
+
+    // void* builtin_immediatebuf[2]   = { NULL,       WORD(IRETURN) };
+    // void* word_immediatebuf[3]      = { WORD(CALL), NULL, WORD(IRETURN) };
+
+    char wordbuf[WORD_NAME_MAX_LEN];
+    char linebuf[WORD_NAME_MAX_LEN];
+
+    char stdinbuf[1024]; // todo: make #define
+    reader_state_t stdin_state;
+
+    if(!initialized) {
+        initialized = 1;
+
+    }
 
 }
 
