@@ -124,6 +124,10 @@ static void kill_thread() {
 #define EXIT       &&exit_
 #define CALL(addr) &&call, (void*)(addr)
 
+// todo: 
+// make generic
+// add print_ds, print_rs, print_etc
+// add print_thread_state or something
 static void print_stack(cell* s0, cell* ds) {
     printf("DS: [ ");
     for (cell* p = ds; p < s0 + 64; ++p) printf("%ld ", *p);
@@ -136,73 +140,73 @@ static void print_return_stack(void*** r0, void*** rs) {
     printf("] rs-ok\n");
 }
 
-void run_thread_test() {
-    void* program[] = {
-        &&lit,  (void*)42,
-        &&lit,  (void*)100,
-        &&add,
-        &&exit_
-    };
+// void run_thread_test() {
+//     void* program[] = {
+//         &&lit,  (void*)42,
+//         &&lit,  (void*)100,
+//         &&add,
+//         &&exit_
+//     };
 
-    void* subroutine[] = {
-        &&lit,  (void*)10,
-        &&add,
-        &&exit_
-    };
+//     void* subroutine[] = {
+//         &&lit,  (void*)10,
+//         &&add,
+//         &&exit_
+//     };
 
-    void* main_program[] = {
-        &&lit, (void*)32,
-        &&lit, (void*)100,
-        &&call, subroutine,
-    };
+//     void* main_program[] = {
+//         &&lit, (void*)32,
+//         &&lit, (void*)100,
+//         &&call, subroutine,
+//     };
 
-    // Allocate and initialize thread
-    // thread_state_t* t = create_thread(64, 64, 0, program);
-    thread_state_t* t = create_thread(64, 64, 0, main_program);
+//     // Allocate and initialize thread
+//     // thread_state_t* t = create_thread(64, 64, 0, program);
+//     thread_state_t* t = create_thread(64, 64, 0, main_program);
 
-    cell* ds = t->s0 + 64; // stack grows downward
-    cell* s0 = t->s0;
-    void*** rs = t->r0;
-    void*** r0 = t->r0;
+//     cell* ds = t->s0 + 64; // stack grows downward
+//     cell* s0 = t->s0;
+//     void*** rs = t->r0;
+//     void*** r0 = t->r0;
 
-    void** ip = t->ip;
+//     void** ip = t->ip;
 
-    goto **ip++;
+//     goto **ip++;
 
-    lit:
-        printf("Before LIT:\n");
-        print_stack(s0, ds);
-        PUSH(INTARG());
-        printf("After LIT:\n");
-        print_stack(s0, ds);
-        NEXT();
+//     lit:
+//         printf("Before LIT:\n");
+//         print_stack(s0, ds);
+//         PUSH(INTARG());
+//         printf("After LIT:\n");
+//         print_stack(s0, ds);
+//         NEXT();
 
-    add: {
-        printf("Before ADD:\n");
-        print_stack(s0, ds);
-        cell a = POP();
-        cell b = POP();
-        PUSH(a + b);
-        print_stack(s0, ds);
-        NEXT();
-    }
+//     add: {
+//         printf("Before ADD:\n");
+//         print_stack(s0, ds);
+//         cell a = POP();
+//         cell b = POP();
+//         PUSH(a + b);
+//         print_stack(s0, ds);
+//         NEXT();
+//     }
 
-    call: {
-        void *fn = ARG();
-        PUSHRS(ip);
-        print_return_stack(r0, rs);
-        ip = fn;
-        NEXT(); // todo: rm
-    }
+//     call: {
+//         void *fn = ARG();
+//         PUSHRS(ip);
+//         print_return_stack(r0, rs);
+//         ip = fn;
+//         NEXT(); // todo: rm
+//     }
 
 
-    exit_:
-        // print_return_stack(r0, rs);
-        printf("Top of stack: %ld\n", TOP());
-        // print_return_stack(r0, rs);
-        return;
-}
+//     exit_:
+//         // print_return_stack(r0, rs);
+//         printf("Top of stack: %ld\n", TOP());
+//         // print_return_stack(r0, rs);
+//         return;
+// }
 
-int main() {
-    run_thread_test();
-}
+// int main() {
+//     run_thread_test();
+// }
