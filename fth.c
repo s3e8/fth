@@ -8,8 +8,14 @@
 #include "fth_thread.h"
 
 /* globals */
-cell state = STATE_IMMEDIATE;
-static thread_state_t* current_thread = NULL;
+// dict
+// cell state = STATE_IMMEDIATE;
+// static void*        here;
+// static void*        here0;
+// static cell         here_size;
+// struct word_hdr_t*  latest = NULL;
+// thread state
+// static thread_state_t* current_thread = NULL;
 
 static void run(
     void**  ip,     cell*   ds,     void*** rs, 

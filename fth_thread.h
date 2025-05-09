@@ -22,6 +22,8 @@ typedef struct thread_state_t {
     cell*   t0; // ?
 } thread_state_t;
 
+static thread_state_t* current_thread = NULL;
+
 static thread_state_t* init_thread(cell* s0, void*** r0, cell* t0, void** entrypoint);
 static thread_state_t* create_thread(int ds_size, int rs_size, int ts_size, void** entrypoint);
 static void kill_thread();
