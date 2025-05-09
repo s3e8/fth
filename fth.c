@@ -18,7 +18,7 @@ static void run(
 ) {
     static int initialized = 0;
 
-    register cell tmp; // placeholder var used in bytecode
+    register cell tmp; // temp buffer var used in bytecode
 
     // todo: why initialize like this, rather than init/create_thread?
     cell*   s0 = ds;
@@ -36,8 +36,8 @@ static void run(
     // void* builtin_immediatebuf[2]   = { NULL,       WORD(IRETURN) };
     // void* word_immediatebuf[3]      = { WORD(CALL), NULL, WORD(IRETURN) };
 
-    char wordbuf[WORD_NAME_MAX_LEN];
-    char linebuf[WORD_NAME_MAX_LEN];
+    char wordbuf[WORD_NAME_MAX_LEN];    // like tmp, these buffers are used in the bytecode
+    char linebuf[WORD_NAME_MAX_LEN];    // --
 
     char stdinbuf[1024]; // todo: make #define
     reader_state_t stdin_state;
@@ -52,6 +52,6 @@ static void run(
 int main(int argc, char** argv) {
     cell    datastack[DS_SIZE]      = {0};
     void**  returnstack[RS_SIZE]    = {0};
-
+    // todo: why don't we need to free after this?
 
 }
