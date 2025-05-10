@@ -420,44 +420,44 @@ void run_thread_test() {
 // toy interpret!
 //
 static void interpret(reader_state_t* state, char* wordbuf) {
-    // Read the next word into `word`
-    char* word = read(wordbuf);
-    // early-exit if no word was read
-    // if(!word) NEXT();
+//     // Read the next word into `word`
+//     char* word = read(wordbuf);
+//     // early-exit if no word was read
+//     // if(!word) NEXT();
 
-//     // Try to find the word in the dictionary
-    word_hdr_t* entry = find_word(wordbuf);
+// //     // Try to find the word in the dictionary
+//     word_hdr_t* entry = find_word(wordbuf);
 
-    if (!entry) {
-        // Attempt to interpret it as a literal number
-        char* endptr = NULL;
-        cell val = (cell)strtol(word, &endptr, base);
+//     if (!entry) {
+//         // Attempt to interpret it as a literal number
+//         char* endptr = NULL;
+//         cell val = (cell)strtol(word, &endptr, base);
 
-        // Check if the entire string was not consumed => invalid number
-        // (Note: This line is potentially buggy and should probably be:
-        // if (*endptr != '\0') )
-        if (!endptr != "\0") printf("ERROR: No such word: %s\n", word);
-        else {
-            // Valid number literal
-            if (state == STATE_COMPILE) {
-                // In compile state: compile a literal onto the dictionary
-            // e.g., emit a `lit` instruction + value
-                // comma((cell) ...?) .. tick('lit')?
-                comma(val);
-            } else {
-                // In interpret state: just push the value or print it
-                printf("val: %d", val);
-            }
-        }
-        // Continue to next instruction
-        // NEXT();
-    }
+//         // Check if the entire string was not consumed => invalid number
+//         // (Note: This line is potentially buggy and should probably be:
+//         // if (*endptr != '\0') )
+//         if (!endptr != "\0") printf("ERROR: No such word: %s\n", word);
+//         else {
+//             // Valid number literal
+//             if (state == STATE_COMPILE) {
+//                 // In compile state: compile a literal onto the dictionary
+//             // e.g., emit a `lit` instruction + value
+//                 // comma((cell) ...?) .. tick('lit')?
+//                 comma(val);
+//             } else {
+//                 // In interpret state: just push the value or print it
+//                 printf("val: %d", val);
+//             }
+//         }
+//         // Continue to next instruction
+//         // NEXT();
+//     }
 
-    if (STATE_COMPILE && !(entry->flags & FLAG_IMMED)) {
-        if (entry->flags & FLAG_BUILTIN) {
-            printf("builtin word\n");
-        }
-    }
+//     if (STATE_COMPILE && !(entry->flags & FLAG_IMMED)) {
+//         if (entry->flags & FLAG_BUILTIN) {
+//             printf("builtin word\n");
+//         }
+//     }
 
     // Get word...
     word_hdr_t* word = read_word(state, wordbuf);
