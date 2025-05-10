@@ -6,6 +6,7 @@
         "stddef.h": "c",
         "stdio.h": "c",
         "string.h": "c",
-        "typeinfo": "c"
+        "typeinfo": "c",
+        "readline.h": "c"
     }
 }

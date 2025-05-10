@@ -1,13 +1,18 @@
-// to compile: gcc -o fth fth.c fth_thread.c
+// to compile: gcc -o gcc -o fth fth.c -ledit
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
+#include <ctype.h>
+#include <editline/readline.h>
+// #include <readline/readline.h>
+// #include <readline/history.h>
 
 #include "fth_cfg.h"
-// #include "fth_dict.h"
-#include "fth_reader.h"
-#include "fth_thread.h"
+
+/* ThE C3Ll t7P3 */
+typedef uintptr_t cell;
 
 /* Dictionary */
 typedef struct word_hdr_t {
@@ -21,6 +26,13 @@ typedef struct builtin_word_t {
     void*   code;
     cell    flags;
 } builtin_word_t;
+
+typedef struct reader_state_t {
+    FILE*   stream;
+    char*   linebuf;
+    cell    linebuf_size;
+    char*   remaining_chars;
+} reader_state_t;
 
 // /* Thread State */
 // // todo: does order matter?
@@ -119,6 +131,264 @@ static void create_builtin(builtin_word_t* b) {
     // comma(0); // ??
 }
 
+/* Reader Stuff */
+
+static void init_reader_state(reader_state_t* state, char* linebuf, cell linebuf_size, FILE* fp) {
+    state->stream           = fp;
+    state->linebuf          = linebuf;
+    state->linebuf[0]       = '\0';
+    state->linebuf_size     = linebuf_size;
+    state->remaining_chars  = linebuf;   
+}
+
+//
+static reader_state_t* open_file(const char *filename, const char* mode) {
+    FILE *fp = fopen(filename, mode);
+    if (!fp) return NULL;
+
+    char *lbuf = malloc(1024);
+    if (!lbuf) goto err_exit;
+  
+    setvbuf(fp, NULL, _IONBF, 0);  // disable input buffering, we have our own
+  
+    reader_state_t* state = (reader_state_t*)malloc(sizeof(reader_state_t));
+    if(!state) goto err_exit;
+
+    init_reader_state(state, lbuf, 1024, fp);
+    return state;
+  
+    err_exit:
+        free(lbuf);
+        fclose(fp);
+        return NULL;
+}
+
+//
+static void close_file(reader_state_t *fp) {
+    if(fp->stream) fclose(fp->stream);
+    free(fp->linebuf);
+    free(fp);
+}
+
+static void skip_whitespace(reader_state_t* state) {
+    while(isspace(*state->remaining_chars)) state->remaining_chars++;
+}
+
+static void* get_next_line(reader_state_t* state) {
+    char* tmp = fgets(state->linebuf, state->linebuf_size, state->stream);
+    if(!tmp) return NULL;
+
+    state->remaining_chars = tmp;
+    return tmp;
+}
+
+static void* read_word(reader_state_t* state, char* tobuf) {
+    char* buf = tobuf; // This is a common C pattern for writing into a buffer while keeping track of both the start and current position.
+
+    // skip any preceding whitespace
+    skipws:
+        skip_whitespace(state);
+
+    // get_next_line if buffer is empty
+    if (*state->remaining_chars == '\0') {
+        if (!get_next_line(state)) return NULL;
+        goto skipws;
+    }
+
+    // copy until next whitespace
+    while(*state->remaining_chars != '\0' && !isspace(*state->remaining_chars)) {
+        *buf++ = *state->remaining_chars++;
+    }
+
+    state->remaining_chars++;
+    *buf = '\0';
+
+    return tobuf;
+}
+
+static int read_key(reader_state_t* state) {
+    if (*state->remaining_chars=='\0') {
+        if (!get_next_line(state)) return -1;
+    }
+    return *state->remaining_chars++;
+}
+
+static cell is_eol(reader_state_t* state) {
+    skip_whitespace(state);
+    return *state->remaining_chars=='\0';
+}
+  
+static cell is_eof(reader_state_t* fp) {
+    return *fp->remaining_chars=='\0' && feof(fp->stream);
+}
+
+static void emit_char(int c, FILE* fp) {
+    fputc(c, fp);
+}
+
+static char *prompt_line(const char* prompt, reader_state_t* state) {
+    char *tmp = readline(prompt);
+    if(!tmp) return NULL;
+
+    add_history(tmp);
+    strncpy(state->linebuf, tmp, state->linebuf_size);
+    free(tmp);
+    state->remaining_chars = state->linebuf;
+    return state->remaining_chars;
+}
+
+// toy interpret!
+//
+static void interpret(reader_state_t* state, char* wordbuf) {
+//     // Read the next word into `word`
+//     char* word = read();
+//     // early-exit if no word was read
+//     // if(!word) NEXT();
+
+//     // Try to find the word in the dictionary
+//     word_hdr_t* entry = find_word(wordbuf);
+
+//     if (!entry) {
+//         // Attempt to interpret it as a literal number
+//         char* endptr = NULL;
+//         // cell val = (cell)strtol(word, &endptr, base);
+
+//         // Check if the entire string was not consumed => invalid number
+//         // (Note: This line is potentially buggy and should probably be:
+//         // if (*endptr != '\0') )
+//         if (!endptr != "\0") printf("ERROR: No such word: %s\n", word);
+//         else {
+//             // Valid number literal
+//             if (state == STATE_COMPILE) {
+//                 // In compile state: compile a literal onto the dictionary
+//             // e.g., emit a `lit` instruction + value
+//                 // comma((cell) ...?) .. tick('lit')?
+//                 comma(val);
+//             } else {
+//                 // In interpret state: just push the value or print it
+//                 printf("val: %d", val);
+//             }
+//         }
+//         // Continue to next instruction
+//         // NEXT();
+//     }
+
+//     if (STATE_COMPILE && !(entry->flags & FLAG_IMMED)) {
+//         if (entry->flags & FLAG_BUILTIN) {
+
+//         }
+//     }
+
+    // Get word...
+    word_hdr_t* word = read_word(state, wordbuf);
+    printf("Word: %s\n", wordbuf);
+
+    // Try to find word in dictionary...
+    word_hdr_t* entry = find_word(wordbuf);
+
+    //
+    // If word is not an entry in dictionary...
+    if (!entry) {
+        // Try to interpret as literal number
+        char* endptr = NULL;
+        // todo: cell val = (cell)strtol(word, &endptr, base);
+        // todo: impl "base"
+        cell val = (cell)strtol(wordbuf, &endptr, 10);
+
+        // Check if the entire string was not consumed => invalid number
+        if (*endptr != '\0') { // note: single quotes matters for char apparently...
+            printf("ERROR: No such word: %s\n", wordbuf);
+        } else {
+            printf("'%s' is number.\n", wordbuf);
+
+            // Valid number literal:
+            if (state == STATE_COMPILE) {
+                printf("Compiling number: %s...\n", wordbuf);
+                // In compile state: compile a literal onto the dictionary
+                // e.g., emit a `lit` instruction + value
+                comma(val);
+            } else {
+                // In interpret state: just push the value
+                printf("value: %s\n", wordbuf);
+            }
+        }
+        // Continue to next instruction
+        // todo: NEXT();
+        return;
+    }
+
+    //
+    // If in compile state (1) and the word is *not* an IMMEDIATE word...
+    if (state == STATE_COMPILE && !(entry->flags & FLAG_IMMED)) {
+        // Check if it's a BUILTIN word (native C function)
+        if (entry->flags & FLAG_BUILTIN) {
+            printf("TODO: Compiling builtin '%s' at cfa: %p\n", entry->name, cfa(entry));
+            // Emit (emit?) (compile) the built-in function directly into the instruction stream
+            // by placing its function pointer (cast as a cell) at the current memory location.
+            // comma((cell)(*cfa(entry)));
+        } else {
+            // Otherwise, it's a user-defined word.
+            // Emit the l_CALL opcode followed by the word's code field address.
+            // comma((cell) &&l_CALL);           // compile-time token that means "call next address"
+            // comma((cell) cfa(entry));         // compile the address of the word to be called
+            printf("User-defined word: '%s'\n", entry->name);
+        }
+    } else {
+        // Otherwise (not compiling, or it *is* IMMEDIATE), we execute it immediately.
+
+        // Get code field address of the word
+        void **code = cfa(entry);
+        // printf("Executing: '%s' with cfa: %p\n", entry->name, cfa);
+        // while(*code) { *code++; }
+
+        printf("Evaling: '%s' with cfa: %p\n", entry->name, cfa);
+        // eval(entry->name);
+
+        // Push the current instruction pointer onto the nesting stack
+        // so we can return here after the word finishes executing.
+        // *--nestingstack = ip;
+
+        // If the word is a built-in, patch and jump to it via a temporary buffer
+        if(entry->flags & FLAG_BUILTIN) {
+            // Place the built-in function pointer in the immediate buffer
+            // builtin_immediatebuf[0] = *code;
+
+            // Set instruction pointer to point to the buffer, so the function runs immediately
+            // ip = builtin_immediatebuf;
+        } else {
+            // Otherwise, prepare the call to a normal (non-builtin) Forth word
+
+            // Place the word's code address into the immediate buffer
+            // word_immediatebuf[1] = (void*)code;
+
+            // Set instruction pointer to that buffer, which acts like a trampoline
+            // ip = word_immediatebuf;
+        }
+    }
+    // eval(entry->name);
+    printf("\n");
+}
+
+static void toy_run() {
+    // static int initialized = 0;
+
+    char input[1024];
+    char wordbuf[WORD_NAME_MAX_LEN];
+    char linebuf[WORD_NAME_MAX_LEN];
+
+    char stdin_buf[1024];
+    reader_state_t stdin_state;
+
+    init_reader_state(&stdin_state, stdin_buf, 1024, stdin);
+
+    while (1) {
+        printf("forth> ");
+        fflush(stdout);
+
+        interpret(&stdin_state, linebuf);
+    }
+}
+
 // /* Interpreter */
 // static void run(
 //     void**  ip,     cell*   ds,     void*** rs, 
@@ -184,4 +454,6 @@ int main(int argc, char** argv) {
     } else {
         printf("word NOT found!\n");
     }
+
+    toy_run();
 }
