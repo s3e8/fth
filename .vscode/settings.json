@@ -3,6 +3,9 @@
         "stdlib.h": "c",
         "fth_reader.h": "c",
         "fth_thread.h": "c",
-        "stddef.h": "c"
+        "stddef.h": "c",
+        "stdio.h": "c",
+        "string.h": "c",
+        "typeinfo": "c"
     }
 }

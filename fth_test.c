@@ -1,3 +1,4 @@
+// to compile: gcc -o fth_test fth_test.c fth_dict.c
 #include <stdio.h>
 #include <stddef.h>
 
@@ -5,6 +6,13 @@
 #include "fth_dict.h"
 #include "fth_thread.h"
 #include "fth_reader.h"
+
+void test_dict_1() {
+    printf("Creating: 'test-word-1'...\n");
+    create_word("test-word1", 0);
+    word_hdr_t* res = find_word("test-word-1");
+    if (res && res->name == "test-word-1") printf("word found!\n");
+}
 
 static void run_test_1(
     void**  ip,     cell*   ds,     void*** rs, 
@@ -45,8 +53,9 @@ static void run_test_1(
 }
 
 int main(int argc, char** argv) {
-    cell    datastack[DS_SIZE]      = {0};
-    void**  returnstack[RS_SIZE]    = {0};
+    // cell    datastack[DS_SIZE]      = {0};
+    // void**  returnstack[RS_SIZE]    = {0};
 
+    test_dict_1();
 
 }
