@@ -1,8 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
-#include "fth_dict.h"
+// to compile: gcc -o fth_dict fth_dict.c
+#include "fth.h"
+
+cell state = STATE_IMMEDIATE;
+void*        here;
+void*        here0;
+cell         here_size;
+word_hdr_t*  latest = NULL;
 
 static word_hdr_t* create_word(const char* name, cell flags) {
     if(!name) name="\0";
@@ -70,29 +73,56 @@ static void create_builtin(builtin_word_t* b) {
     // comma(0); // ??
 }
 
-// // misc tests...
-// void test_dict_1() {
-//     printf("Creating: 'test-word-1'...\n");
-//     create_word("test-word-1", 0);  // Use consistent name
-//     word_hdr_t* res = find_word("test-word-1");
-//     if (res) {
-//         if (strncmp(res->name, "test-word-1", WORD_NAME_MAX_LEN) == 0) {
-//             printf("word found!\n");
-//         } else {
-//             printf("word found but name mismatch!\n");
-//         }
-//     } else {
-//         printf("word NOT found!\n");
-//     }
-// }
+// misc tests...
+void test_create_word() {
+    printf("Creating: 'created-word'...\n");
+    create_word("created-word", 0);  // Use consistent name
+    word_hdr_t* res = find_word("created-word");
+    if (res) {
+        if (strncmp(res->name, "created-word", WORD_NAME_MAX_LEN) == 0) {
+            printf("Created word found!\n");
+        } else {
+            printf("Created word found but name mismatch!\n");
+        }
+    } else {
+        printf("Created word NOT found!\n");
+    }
 
-// void test_dict() {
-//     here_size   = HERE_SIZE;
-//     here0       = malloc(here_size);
-//     here        = here0;
-//     if (!here0) {
-//         fprintf(stderr, "Failed to allocate dictionary memory!\n");
-//         exit(1);
-//     }
-//     test_dict_1();
+    printf("created-word cfa: %p\n", cfa(res));
+}
+
+void test_init_dict() {
+
+}
+
+void test_assemble_word() {
+    printf("Creating: 'assembled-word'...\n");
+    assemble_word("assembled-word", 0, (void**)20, 0);  // Use consistent name
+    word_hdr_t* res = find_word("assembled-word");
+    if (res) {
+        if (strncmp(res->name, "assembled-word", WORD_NAME_MAX_LEN) == 0) {
+            printf("Assembled word found!\n");
+        } else {
+            printf("Assembled word found but name mismatch!\n");
+        }
+    } else {
+        printf("Assembled word NOT found!\n");
+    }
+}
+
+void test_dict() {
+    here_size   = HERE_SIZE;
+    here0       = malloc(here_size);
+    here        = here0;
+    if (!here0) {
+        fprintf(stderr, "Failed to allocate dictionary memory!\n");
+        exit(1);
+    }
+    test_create_word();
+    // test_assemble_word();
+}
+
+// void main() {
+//     printf("starting dictionary test...\n");
+//     test_dict();
 // }

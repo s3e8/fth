@@ -1,8 +1,6 @@
-#include "fth_cfg.h"
-#ifndef CELL
-#include <stdint.h>
-typedef uintptr_t cell;
-#endif
+// fth_dict.h
+#ifndef FTH_DICT_H
+#define FTH_DICT_H
 
 #define STATE_IMMEDIATE 0 // todo: this should probably be in dict.h instead?
 #define STATE_COMPILE   1 //
@@ -28,17 +26,14 @@ typedef struct builtin_word_t {
 } builtin_word_t;
 static void create_builtin(builtin_word_t* b);
 
-// cell state = STATE_IMMEDIATE;
-// static void*        here;
-// static void*        here0;
-// static cell         here_size;
-// struct word_hdr_t*  latest = NULL;
-
 static word_hdr_t*  create_word(const char* name, cell flags);
 static word_hdr_t*  find_word(const char* name);
 static void**       cfa(word_hdr_t* word);
 static void         comma(cell val);
 static void*        tick(const char* name);
 // Dictionary helpers //
-static void assemble(const char* name, cell flags, void** code, cell codesize);
+static void assemble_word(const char* name, cell flags, void** code, cell codesize);
 static void create_constant(const char* name, cell val);
+static void create_builtin(builtin_word_t* b);
+
+#endif // FTH_DICT_H

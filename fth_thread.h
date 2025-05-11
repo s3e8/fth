@@ -1,10 +1,9 @@
-#ifndef CELL
-#include <stdint.h>
-typedef uintptr_t cell;
-#endif
+// fth_thread.h
+#ifndef FTH_THREAD_H
+#define FTH_THREAD_H
 
 // todo: does order matter?
-// "green" thread
+// "green" cooperative thread
 typedef struct thread_state_t {
     cell                    killed;    // ?
     struct thread_state_t*  next;
@@ -22,8 +21,27 @@ typedef struct thread_state_t {
     cell*   t0; // ?
 } thread_state_t;
 
-static thread_state_t* current_thread = NULL;
+//
+#define NEXT()      goto **ip++
+#define PUSH(x)     *--ds = (cell)(x)
+#define POP()       (*ds++)
+#define FPUSH(x)    *--fs = (float)(x)
+#define FPOP()      (*fs++)
+#define PUSHRS(x)   *--rs = (void**)(x)
+#define POPRS()     (*rs++)
+#define INTARG()    ((cell)(*ip++))
+#define FLOATARG()  (*(float*)ip)
+#define ARG()       (*ip++)
+#define TOP()       (*ds) // todo: TOP -- vs: "(*(ds))"? // always returns mot recent/last pushed value
+#define FTOP()      (*fs)
+#define AT(x)       (*(ds+(x)))
+#define FAT(x)      (*(fs+(x)))
 
 static thread_state_t* init_thread(cell* s0, void*** r0, cell* t0, void** entrypoint);
-static thread_state_t* create_thread(int ds_size, int rs_size, int ts_size, void** entrypoint);
+thread_state_t* create_thread(int ds_size, int rs_size, int ts_size, void** entrypoint);
 static void kill_thread();
+// helper stuff
+void print_stack(cell* s0, cell* ds);
+void print_return_stack(void*** r0, void*** rs);
+
+#endif // FTH_THREAD_H
