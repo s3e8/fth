@@ -26,14 +26,14 @@ typedef struct builtin_word_t {
 } builtin_word_t;
 static void create_builtin(builtin_word_t* b);
 
-static word_hdr_t*  create_word(const char* name, cell flags);
-static word_hdr_t*  find_word(const char* name);
-static void**       cfa(word_hdr_t* word);
-static void         comma(cell val);
-static void*        tick(const char* name);
+word_hdr_t*  create_word(const char* name, cell flags);
+word_hdr_t*  find_word(const char* name);
+void**       cfa(word_hdr_t* word);
+void         comma(cell val);
+void*        tick(const char* name);
 // Dictionary helpers //
-static void assemble_word(const char* name, cell flags, void** code, cell codesize);
-static void create_constant(const char* name, cell val);
-static void create_builtin(builtin_word_t* b);
+void assemble_word(const char* name, cell flags, void** code, cell codesize);
+void create_constant(const char* name, cell val);
+void create_builtin(builtin_word_t* b);
 
 #endif // FTH_DICT_H

@@ -81,6 +81,19 @@ void test_thread() {
 
     void** ip = t->ip;
 
+    // cell    ds[DS_SIZE] = {0};
+    // void**  ds[RS_SIZE] = {0};
+
+    // cell*   s0 = ds;
+    // cell*   t0 = NULL;
+    // float*  f0 = NULL;
+    // cell*   ts = NULL;
+    // float*  fs = NULL;
+    // void*** r0 = rs;
+
+
+    // init_thread(s0, r0, t0, ip);
+
     goto **ip++;
 
     lit:
@@ -128,12 +141,12 @@ static void run(void** ip, cell* ds, void*** rs, int argc, char** argv) {
 
     // cell base = 10;
 
-    // cell*   s0 = ds;
-    // cell*   t0 = NULL;
-    // float*  f0 = NULL;
-    // cell*   ts = NULL;
-    // float*  fs = NULL;
-    // void*** r0 = rs;
+    cell*   s0 = ds;
+    cell*   t0 = NULL;
+    float*  f0 = NULL;
+    cell*   ts = NULL;
+    float*  fs = NULL;
+    void*** r0 = rs;
 
     if (!initialized) {
         initialized = 1;
@@ -143,31 +156,84 @@ static void run(void** ip, cell* ds, void*** rs, int argc, char** argv) {
         // build builtins
         // build constants
 
-        // init_thread(s0, r0, t0, ip);
+        init_thread(s0, r0, t0, ip);
 
         // init topmost quitcode interpreter loop:
         // QUIT is the topmost interpreter loop: interpret forever
         // better version implemented in forth later that supports eof etc
+        void* program[] = {
+            &&lit,  (void*)42,
+            &&lit,  (void*)100,
+            &&add,
+            &&exit_
+        };
+
+        void* subroutine[] = {
+            &&lit,  (void*)10,
+            &&add,
+            &&exit_
+        };
+
+        void* main_program[] = {
+            &&lit, (void*)32,
+            &&lit, (void*)100,
+            &&call, subroutine,
+        };
+
+        ip = main_program;
     }
 
     // calling NEXT/goto starts the loop...
-    // NEXT();
+    NEXT();
 
-    printf("starting dictionary test...\n");
-    test_dict();
-    test_thread();
+    lit:
+        printf("Before LIT:\n");
+        print_stack(s0, ds);
+        PUSH(INTARG());
+        printf("After LIT:\n");
+        print_stack(s0, ds);
+        NEXT();
+
+    add: {
+        printf("Before ADD:\n");
+        print_stack(s0, ds);
+        cell a = POP();
+        cell b = POP();
+        PUSH(a + b);
+        print_stack(s0, ds);
+        NEXT();
+    }
+
+    call: {
+        void *fn = ARG();
+        PUSHRS(ip);
+        print_return_stack(r0, rs);
+        ip = fn;
+        NEXT(); // todo: rm
+    }
+
+
+    exit_:
+        // print_return_stack(r0, rs);
+        printf("Top of stack: %ld\n", TOP());
+        // print_return_stack(r0, rs);
+        return;
 }
 
 int main(int argc, char** argv) {
-    // Initialize ds/rs here for speed. Init the rest later:
-    // ... todo: etc
-    // ... todo: etc
-    cell    datastack[DS_SIZE];     // todo: change to 1024 default
-    void**  returnstack[RS_SIZE];   // todo: change to  512 default
+    // // Initialize ds/rs here for speed. Init the rest later:
+    // // ... todo: etc
+    // // ... todo: etc
+    cell    datastack[DS_SIZE]      = {0};  // todo: change to 1024 default
+    void**  returnstack[RS_SIZE]    = {0};  // todo: change to  512 default
+    memset(datastack,   0, sizeof(datastack));
+    memset(returnstack, 0, sizeof(returnstack));
 
-    here_size   = HERE_SIZE;
-    here0       = malloc(here_size);
-    here        = here0;
+    // here_size   = HERE_SIZE;
+    // here0       = malloc(here_size);
+    // here        = here0;
+    // test_dict();
+    test_thread();
 
     run(NULL, datastack + DS_SIZE, returnstack + RS_SIZE, argc, argv);
 

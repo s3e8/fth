@@ -9,7 +9,7 @@
 
 thread_state_t* current_thread = NULL;
 
-static thread_state_t* init_thread(cell* s0, void*** r0, cell* t0, void** entrypoint) {
+thread_state_t* init_thread(cell* s0, void*** r0, cell* t0, void** entrypoint) {
     thread_state_t* new_thread = malloc(sizeof(thread_state_t));
 
     new_thread->killed = 0;
@@ -42,7 +42,7 @@ thread_state_t* create_thread(int ds_size, int rs_size, int ts_size, void** entr
 }
 
 // todo?
-static void kill_thread() {
+void kill_thread() {
     if (!current_thread) return;
     if (current_thread->next == current_thread) return; // todo:?
 
