@@ -10,6 +10,7 @@
 typedef uintptr_t cell;
 
 #include "fth_cfg.h"
+#include "fth_io.h"
 #include "fth_dict.h"
 #include "fth_thread.h"
 

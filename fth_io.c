@@ -1,6 +1,6 @@
-#include "fth_reader.h"
+#include "fth.h"
 
-static void init_reader_state(reader_state_t* state, char* linebuf, cell linebuf_size, FILE* fp) {
+void init_reader_state(reader_state_t* state, char* linebuf, cell linebuf_size, FILE* fp) {
     state->stream           = fp;
     state->linebuf          = linebuf;
     state->linebuf[0]       = '\0';
@@ -9,7 +9,7 @@ static void init_reader_state(reader_state_t* state, char* linebuf, cell linebuf
 }
 
 //
-static reader_state_t* open_file(const char *filename, const char *mode) {
+reader_state_t* open_file(const char *filename, const char *mode) {
     FILE *fp = fopen(filename, mode);
     if (!fp) return NULL;
 
@@ -31,17 +31,17 @@ static reader_state_t* open_file(const char *filename, const char *mode) {
 }
 
 //
-static void close_file(reader_state_t *fp) {
+void close_file(reader_state_t *fp) {
     if(fp->stream) fclose(fp->stream);
     free(fp->linebuf);
     free(fp);
 }
 
-static void skip_whitespace(reader_state_t* state) {
+void skip_whitespace(reader_state_t* state) {
     while(isspace(*state->remaining_chars)) state->remaining_chars++;
 }
 
-static void* get_next_line(reader_state_t* state) {
+void* get_next_line(reader_state_t* state) {
     char* tmp = fgets(state->linebuf, state->linebuf_size, state->stream);
     if(!tmp) return NULL;
 
@@ -49,7 +49,7 @@ static void* get_next_line(reader_state_t* state) {
     return tmp;
 }
 
-static void* read_word(reader_state_t* state, char* tobuf) {
+void* read_word(reader_state_t* state, char* tobuf) {
     char* buf = tobuf; // This is a common C pattern for writing into a buffer while keeping track of both the start and current position.
 
     // skip any preceding whitespace
@@ -73,27 +73,56 @@ static void* read_word(reader_state_t* state, char* tobuf) {
     return tobuf;
 }
 
-static int read_key(reader_state_t *state) {
+reader_state_t* read_string_as_file(const char *input) {
+    char *buf = strdup(input); // must be mutable
+    if (!buf) return NULL;
+
+    FILE *fp = fmemopen(buf, strlen(buf), "r");
+    if (!fp) {
+        free(buf);
+        return NULL;
+    }
+
+    char *lbuf = malloc(1024);
+    if (!lbuf) {
+        fclose(fp);
+        free(buf);
+        return NULL;
+    }
+
+    reader_state_t *state = malloc(sizeof(reader_state_t));
+    if (!state) {
+        fclose(fp);
+        free(lbuf);
+        free(buf);
+        return NULL;
+    }
+
+    init_reader_state(state, lbuf, 1024, fp);
+    return state;
+}
+
+int read_key(reader_state_t *state) {
     if (*state->remaining_chars=='\0') {
         if (!get_next_line(state)) return -1;
     }
     return *state->remaining_chars++;
 }
 
-static cell is_eol(reader_state_t *state) {
+cell is_eol(reader_state_t *state) {
     skip_whitespace(state);
     return *state->remaining_chars=='\0';
 }
   
-static cell is_eof(reader_state_t *fp) {
+cell is_eof(reader_state_t *fp) {
     return *fp->remaining_chars=='\0' && feof(fp->stream);
 }
 
-static void emit_char(int c, FILE *fp) {
+void emit_char(int c, FILE *fp) {
     fputc(c, fp);
 }
 
-static char *prompt_line(const char *prompt, reader_state_t *state) {
+char *prompt_line(const char *prompt, reader_state_t *state) {
     char *tmp = readline(prompt);
     if(!tmp) return NULL;
 
