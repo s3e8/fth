@@ -147,6 +147,8 @@ static void run(void** ip, cell* ds, void*** rs, int argc, char** argv) {
     cell*   ts = NULL;
     float*  fs = NULL;
     void*** r0 = rs;
+    for (cell*   p = ds; p < s0 + DS_SIZE; ++p) p = 0;
+    for (void*** p = rs; p < r0 + RS_SIZE; ++p) p = 0;
 
     if (!initialized) {
         initialized = 1;
@@ -226,8 +228,7 @@ int main(int argc, char** argv) {
     // // ... todo: etc
     cell    datastack[DS_SIZE]      = {0};  // todo: change to 1024 default
     void**  returnstack[RS_SIZE]    = {0};  // todo: change to  512 default
-    memset(datastack,   0, sizeof(datastack));
-    memset(returnstack, 0, sizeof(returnstack));
+
 
     // here_size   = HERE_SIZE;
     // here0       = malloc(here_size);
