@@ -119,13 +119,47 @@ void test_thread() {
 
 // static void interpret(void **ip, cell *ds, void ***rs, reader_state_t *inputstate, FILE *outp, int argc, char **argv)
 static void run(void** ip, cell* ds, void*** rs, int argc, char** argv) {
+    static int initialized = 0;
+
+    // temp buffer used by bytecodes
+    // register cell tmp;
+
+    // cell state = STATE_IMMEDIATE;
+
+    // cell base = 10;
+
+    // cell*   s0 = ds;
+    // cell*   t0 = NULL;
+    // float*  f0 = NULL;
+    // cell*   ts = NULL;
+    // float*  fs = NULL;
+    // void*** r0 = rs;
+
+    if (!initialized) {
+        initialized = 1;
+        
+        // disable input buffering, we have our own
+        // init reader state
+        // build builtins
+        // build constants
+
+        // init_thread(s0, r0, t0, ip);
+
+        // init topmost quitcode interpreter loop:
+        // QUIT is the topmost interpreter loop: interpret forever
+        // better version implemented in forth later that supports eof etc
+    }
+
+    // calling NEXT/goto starts the loop...
+    // NEXT();
+
     printf("starting dictionary test...\n");
     test_dict();
     test_thread();
 }
 
 int main(int argc, char** argv) {
-    // initialize ds/rs here for speed:
+    // Initialize ds/rs here for speed. Init the rest later:
     // ... todo: etc
     // ... todo: etc
     cell    datastack[DS_SIZE];     // todo: change to 1024 default
