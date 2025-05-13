@@ -39,7 +39,7 @@ typedef struct thread_state_t {
 
 thread_state_t* init_thread(cell* s0, void*** r0, cell* t0, void** entrypoint);
 thread_state_t* create_thread(int ds_size, int rs_size, int ts_size, void** entrypoint);
-// void kill_thread();
+void kill_thread();
 // helper stuff
 void print_stack(cell* s0, cell* ds);
 void print_return_stack(void*** r0, void*** rs);

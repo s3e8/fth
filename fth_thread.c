@@ -10,7 +10,7 @@
 thread_state_t* current_thread = NULL;
 
 thread_state_t* init_thread(cell* s0, void*** r0, cell* t0, void** entrypoint) {
-    thread_state_t* new_thread = malloc(sizeof(thread_state_t));
+    thread_state_t* new_thread = MALLOC(sizeof(thread_state_t));
 
     new_thread->killed = 0;
     new_thread->ip = entrypoint;
@@ -34,9 +34,9 @@ thread_state_t* init_thread(cell* s0, void*** r0, cell* t0, void** entrypoint) {
 
 thread_state_t* create_thread(int ds_size, int rs_size, int ts_size, void** entrypoint) {
     return init_thread(
-        (cell*)     malloc(ds_size * sizeof(cell)),
-        (void***)   malloc(rs_size * sizeof(void*)),
-        (cell*)     malloc(ts_size * sizeof(cell)),
+        (cell*)     MALLOC(ds_size * sizeof(cell)),
+        (void***)   MALLOC(rs_size * sizeof(void*)),
+        (cell*)     MALLOC(ts_size * sizeof(cell)),
         entrypoint
     );
 }

@@ -13,12 +13,12 @@ reader_state_t* open_file(const char *filename, const char *mode) {
     FILE *fp = fopen(filename, mode);
     if (!fp) return NULL;
 
-    char *lbuf = malloc(1024);
+    char *lbuf = MALLOC(1024);
     if (!lbuf) goto err_exit;
   
     setvbuf(fp, NULL, _IONBF, 0);  // disable input buffering, we have our own
   
-    reader_state_t *state = (reader_state_t*)malloc(sizeof(reader_state_t));
+    reader_state_t *state = (reader_state_t*)MALLOC(sizeof(reader_state_t));
     if(!state) goto err_exit;
 
     init_reader_state(state, lbuf, 1024, fp);
@@ -83,14 +83,14 @@ reader_state_t* read_string_as_file(const char *input) {
         return NULL;
     }
 
-    char *lbuf = malloc(1024);
+    char *lbuf = MALLOC(1024);
     if (!lbuf) {
         fclose(fp);
         free(buf);
         return NULL;
     }
 
-    reader_state_t *state = malloc(sizeof(reader_state_t));
+    reader_state_t *state = MALLOC(sizeof(reader_state_t));
     if (!state) {
         fclose(fp);
         free(lbuf);

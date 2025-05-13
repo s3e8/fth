@@ -68,6 +68,7 @@ void create_constant(const char* name, cell val) {
 
 // Core words and helpers
 void create_builtin(builtin_word_t* b) {
+    printf("Creating builtin: '%s'...\n", b->name);
     create_word(b->name, b->flags | FLAG_BUILTIN);
     comma((cell)b->code);
     // comma(0); // ??
@@ -112,7 +113,7 @@ void create_builtin(builtin_word_t* b) {
 
 // void test_dict() {
 //     here_size   = HERE_SIZE;
-//     here0       = malloc(here_size);
+//     here0       = MALLOC(here_size);
 //     here        = here0;
 //     if (!here0) {
 //         fprintf(stderr, "Failed to allocate dictionary memory!\n");

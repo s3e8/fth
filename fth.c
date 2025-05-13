@@ -1,5 +1,5 @@
+// to compile: gcc -o fth fth.c fth_dict.c fth_thread.c fth_io.c -ledit
 #include "fth.h"
-
 
 // misc tests...
 void test_create_word() {
@@ -40,7 +40,7 @@ void test_assemble_word() {
 
 void test_dict() {
     here_size   = HERE_SIZE;
-    here0       = malloc(here_size);
+    here0       = MALLOC(here_size);
     here        = here0;
     if (!here0) {
         fprintf(stderr, "Failed to allocate dictionary memory!\n");
@@ -130,17 +130,30 @@ void test_thread() {
         return;
 }
 
+/* utilies for calculating branch offsets in inline bytecode and referencing bytecodes */
+#define OFFSET(x) (void*)((x)*sizeof(cell))
+#define WORD(name) &&l_##name
+
 // static void interpret(void **ip, cell *ds, void ***rs, reader_state_t *inputstate, FILE *outp, int argc, char **argv)
-static void run(void** ip, cell* ds, void*** rs, int argc, char** argv) {
+static void run(void** ip, cell* ds, void*** rs, reader_state_t* inputstate, FILE* outp, int argc, char** argv) {
+    printf("DBG: running interpreter...\n");
     static int initialized = 0;
+    printf("DBG: initialization flag set to 0...\n");
 
+    printf("DBG: creating up temporary buffer cell...\n");
     // temp buffer used by bytecodes
-    // register cell tmp;
+    register cell tmp;
+    printf("DBG: temporary buffer cell created and initialized successfully.n");
 
-    // cell state = STATE_IMMEDIATE;
+    printf("DBG: initializing STATE and BASE...\n");
+    cell state = STATE_IMMEDIATE;   // initialize STATE word
+    printf("DBG: STATE initialized.\n");
+    printf("DBG: initializing BASE.\n");
+    cell base  = 10;                // initialize BASE  word
+    printf("DBG: BASE initialized.\n");
+    printf("DBG: STATE and BASE successfully initialized.n");
 
-    // cell base = 10;
-
+    printf("DBG: initializing stack...");
     cell*   s0 = ds;
     cell*   t0 = NULL;
     float*  f0 = NULL;
@@ -149,14 +162,50 @@ static void run(void** ip, cell* ds, void*** rs, int argc, char** argv) {
     void*** r0 = rs;
     for (cell*   p = ds; p < s0 + DS_SIZE; ++p) p = 0;
     for (void*** p = rs; p < r0 + RS_SIZE; ++p) p = 0;
+    print_stack(s0, ds);
 
+    // ...
+    void**  nestingstack_space[NESTINGSTACK_MAX_DEPTH];
+    void*** nestingstack = nestingstack_space + NESTINGSTACK_MAX_DEPTH;
+
+    // ...
+    void **debugger_vector = NULL;
+
+    void* builtin_immediatebuf[2]   = { NULL, WORD(IRETURN) };              // is this 2 or 1?
+    void* word_immediatebuf[3]      = { WORD(CALL), NULL, WORD(IRETURN) };  //
+
+    char wordbuf[WORD_NAME_MAX_LEN];
+    char linebuf[WORD_NAME_MAX_LEN];
+
+    char stdinbuf[1024];
+    reader_state_t stdin_state;
+
+    // init dyncall...
+    // DCCallVM* callvm = dcNewCallVM((DCsize)4096);
+
+    /* trick: include bytecodes.h with a macro for BYTECODE that produces builtin
+    * list elements */
+    static builtin_word_t builtins[] = {
+        #define BYTECODE(label, name, nargs, nfargs, flags, code) { name, &&l_##label, flags },
+        #include "fth_opcode.h"
+        #undef BYTECODE
+        { NULL, NULL, 0 }
+    };
+
+    /* one time init: install the builtins into dictionary and define some essential variables */
     if (!initialized) {
         initialized = 1;
         
         // disable input buffering, we have our own
         // init reader state
-        // build builtins
-        // build constants
+
+        // build core (builtins and constants)
+
+        // build builtins...
+        builtin_word_t* b = builtins;
+        while(b->name) create_builtin(b++);
+
+        // build constants...
 
         init_thread(s0, r0, t0, ip);
 
@@ -187,6 +236,11 @@ static void run(void** ip, cell* ds, void*** rs, int argc, char** argv) {
 
     // calling NEXT/goto starts the loop...
     NEXT();
+
+    // todo: idky we do this twice
+    // #define BYTECODE(label, name, nargs, nfargs, flags, code) l_##label: CHECKSTACK(name, nargs) CHECKFSTACK(name, nfargs) code NEXT();
+    #define BYTECODE(label, name, nargs, nfargs, flags, code) l_##label: code NEXT();
+    #include "fth_opcode.h"
 
     lit:
         printf("Before LIT:\n");
@@ -231,12 +285,19 @@ int main(int argc, char** argv) {
 
 
     // here_size   = HERE_SIZE;
-    // here0       = malloc(here_size);
+    // here0       = MALLOC(here_size);
     // here        = here0;
     // test_dict();
-    test_thread();
+    // test_thread();
 
-    run(NULL, datastack + DS_SIZE, returnstack + RS_SIZE, argc, argv);
+    reader_state_t *fp = open_file("bootstrap.f", "r");
+    if(!fp) {
+        fprintf(stderr, "Cannot open bootstrap file forth.f!\n");
+        return 1;
+    }
+    printf("DBG: bootstrap file opened successfully...\n");
+
+    run(NULL, datastack + DS_SIZE, returnstack + RS_SIZE, fp, stdout, argc, argv);
 
     return 0;
 }

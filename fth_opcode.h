@@ -1,5 +1,5 @@
 // #define BYTECODE(label, name, nargs, nfargs, flags, code) { name, &&l_##label, flags }
-#include "bc_debug.h"
+// #include "fth_opcode_dbg.h"
 
 BYTECODE(LATEST, "latest", 0, 0, 0, { PUSH(&latest); })
 BYTECODE(JUMP, "jump", 0, 0, FLAG_HASARG, {
@@ -43,14 +43,14 @@ BYTECODE(HIDDEN, "hidden", 1, 0, 0, {
 BYTECODE(TICK, "'", 0, 0, FLAG_HASARG|FLAG_IMMED, {
     printf("ticking...\n");
     read_word(inputstate, wordbuf);
-    word_hdr_t *de = find(wordbuf);
+    word_hdr_t *de = find_word(wordbuf);
     cell token;
     if(de->flags & FLAG_BUILTIN) {
       token = (cell)(*(cfa(de)));
     } else {
       token = (cell)cfa(de);
     }
-    if(mode == IMMEDIATE_MODE) {
+    if(state == STATE_IMMEDIATE) {
       PUSH(token);
     } else {
       comma((cell)&&l_LIT);
@@ -427,9 +427,9 @@ BYTECODE(NEQ, "<>", 2, 0, 0, {
   })
 BYTECODE(EQZERO, "0=", 1, 0, 0, { AT(0) = AT(0)==0; })
 BYTECODE(NOTEQZERO, "0<>", 1, 0, 0, { AT(0) = AT(0)!=0; })
-BYTECODE(FIND, "find", 1, 0, 0, {
+BYTECODE(FIND, "find_word", 1, 0, 0, {
     char *wordname = (char*) POP();
-    PUSH(find(wordname));    
+    PUSH(find_word(wordname));    
   })
 BYTECODE(CREATE, "create", 1, 0, 0, { create_word((char*)POP(), 0); })
 BYTECODE(WORD, "word", 0, 0, 0, { PUSH(read_word(inputstate, wordbuf)); })
@@ -448,8 +448,8 @@ BYTECODE(MEMSUB, "-!", 2, 0, 0, {
     tmp = POP();
     *addr -= tmp;    
   })
-BYTECODE(LBRAC, "[", 0, 0, FLAG_IMMED, { mode = IMMEDIATE_MODE; })
-BYTECODE(RBRAC, "]", 0, 0, 0, { mode = COMPILE_MODE; })
+BYTECODE(LBRAC, "[", 0, 0, FLAG_IMMED, { state = STATE_IMMEDIATE; })
+BYTECODE(RBRAC, "]", 0, 0, 0, { state = STATE_COMPILE; })
 BYTECODE(COMMA, ",", 1, 0, 0, {
     tmp = POP();
     *(cell*)here = tmp;
@@ -613,14 +613,14 @@ BYTECODE(INTERPRET, "interpret", 0, 0, 0, {
     if(!word) NEXT();
     printf("interpretting: %s\n", word);
 
-    word_hdr_t *entry = find(word);
+    word_hdr_t *entry = find_word(word);
     if(!entry) {
       char *endptr = NULL;
       cell val = (cell)strtol(word, &endptr, base);
       if(*endptr!='\0') {
 	      printf("ERROR: no such word: %s\n", word);
       } else {
-	      if(mode == COMPILE_MODE) {
+	      if(state == STATE_COMPILE) {
 	        comma((cell) &&l_LIT);
 	        comma(val);
 	      } else {
@@ -629,7 +629,7 @@ BYTECODE(INTERPRET, "interpret", 0, 0, 0, {
       }
       NEXT();
     }
-    if(mode == COMPILE_MODE && !(entry->flags & FLAG_IMMED)) {
+    if(state == STATE_COMPILE && !(entry->flags & FLAG_IMMED)) {
         if(entry->flags & FLAG_BUILTIN) comma((cell)(*cfa(entry)));
         else {
 	        comma((cell) &&l_CALL);
@@ -651,9 +651,9 @@ BYTECODE(IRETURN, "ireturn", 0, 0, 0, {
     ip = *nestingstack++;    
   })
 BYTECODE(OPENFILE, "open-file", 2, 0, 0, {
-    char *mode = (char*)POP();
+    char *state = (char*)POP();
     char *fn = (char*)POP();
-    PUSH(open_file(fn, mode));    
+    PUSH(open_file(fn, state));    
   })
 BYTECODE(CLOSEFILE, "close-file", 1, 0, 0, {
     reader_state_t *rstate = (reader_state_t*)POP();

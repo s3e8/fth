@@ -24,7 +24,6 @@ typedef struct builtin_word_t {
     void* code;
     cell flags;
 } builtin_word_t;
-static void create_builtin(builtin_word_t* b);
 
 word_hdr_t*  create_word(const char* name, cell flags);
 word_hdr_t*  find_word(const char* name);

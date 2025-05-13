@@ -1,11 +1,29 @@
 // fth.h
 #ifndef FTH_H
 #define FTH_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include <ctype.h>
+#include <editline/readline.h>
+
+#ifdef USE_GC
+    #include <gc.h>
+    #define MALLOC(x) GC_MALLOC(x)
+    #define MALLOC_ATOMIC(x) GC_MALLOC_ATOMIC(x)
+    #define REALLOC(ptr,newlen) GC_REALLOC(ptr, newlen)
+    #define RUNGC() GC_gcollect()
+    #define FREE(x)
+#else
+    #define MALLOC(x) malloc(x)
+    #define MALLOC_ATOMIC(x) malloc(x)
+    #define REALLOC(ptr,newlen) realloc(ptr,newlen)
+    #define RUNGC()
+    #define FREE(x) free(x)
+#endif
 
 typedef uintptr_t cell;
 

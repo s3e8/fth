@@ -9,6 +9,9 @@
         "typeinfo": "c",
         "readline.h": "c",
         "fstream": "c",
-        "sstream": "c"
+        "sstream": "c",
+        "fth_opcode.h": "c",
+        "system_error": "c",
+        "fth.h": "c"
     }
 }
