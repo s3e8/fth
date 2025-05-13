@@ -50,6 +50,11 @@ void* get_next_line(reader_state_t* state) {
 }
 
 void* read_word(reader_state_t* state, char* tobuf) {
+    if(!tobuf || !state) {
+        printf("ERROR processing string.\n"); 
+        return NULL;
+    }
+
     char* buf = tobuf; // This is a common C pattern for writing into a buffer while keeping track of both the start and current position.
 
     // skip any preceding whitespace

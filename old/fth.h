@@ -10,6 +10,13 @@
 #include <ctype.h>
 #include <editline/readline.h>
 
+#define DEBUG 1
+#ifdef DEBUG
+    #define DBG_PRINT(fmt, ...) printf("DBG: " fmt, ##__VA_ARGS__)
+#else
+    #define DBG_PRINT(fmt, ...)
+#endif
+
 #ifdef USE_GC
     #include <gc.h>
     #define MALLOC(x) GC_MALLOC(x)

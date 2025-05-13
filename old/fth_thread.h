@@ -43,5 +43,6 @@ void kill_thread();
 // helper stuff
 void print_stack(cell* s0, cell* ds);
 void print_return_stack(void*** r0, void*** rs);
+void print_thread_state(thread_state_t* t);
 
 #endif // FTH_THREAD_H

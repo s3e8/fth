@@ -10,6 +10,11 @@ word_hdr_t*  latest = NULL;
 word_hdr_t* create_word(const char* name, cell flags) {
     if(!name) name="\0";
 
+    if((here + sizeof(word_hdr_t)) >= (here0 + here_size)) {
+        fprintf(stderr, "Dictionary full!\n");
+        exit(1);
+    }
+
     word_hdr_t* new = (word_hdr_t*)here;
     here += sizeof(word_hdr_t);
 
@@ -22,13 +27,24 @@ word_hdr_t* create_word(const char* name, cell flags) {
 }
 
 word_hdr_t* find_word(const char* name) {
-    if(!name) return NULL;
+    // if(!name) return NULL;
+    if(!name) {
+        DBG_PRINT("find_word: null name\n");
+        return NULL;
+    }
+
+    DBG_PRINT("find_word: looking for '%s'\n", name);
 
     word_hdr_t* hdr = latest;
     while(hdr) {
-        if(!strncmp(hdr->name, name, WORD_NAME_MAX_LEN)) return hdr;
+        // DBG_PRINT("  checking: %s (flags: %lx)\n", hdr->name, hdr->flags);
+        if(!strncmp(hdr->name, name, WORD_NAME_MAX_LEN)) {
+            DBG_PRINT("  found match\n");
+            return hdr;
+        }
         hdr = hdr->next;
     }
+    DBG_PRINT("  not found\n");
     return NULL;
 }
 
@@ -38,6 +54,10 @@ void** cfa(word_hdr_t* word) {
 
 // comma operator stores a value (usually a number or an address) into the next available spot in memory (typically here)
 void comma(cell val) {
+    if((here + sizeof(cell)) >= (here0 + here_size)) {
+        fprintf(stderr, "Dictionary overflow!\n");
+        exit(1);
+    }
     *(cell*)here = val;
     here += sizeof(cell);
 }

@@ -17,9 +17,9 @@ thread_state_t* init_thread(cell* s0, void*** r0, cell* t0, void** entrypoint) {
     new_thread->s0 = s0;
     new_thread->r0 = r0;
     new_thread->t0 = t0;
-    new_thread->s0 = new_thread->s0;
-    new_thread->r0 = new_thread->r0;
-    new_thread->t0 = new_thread->t0;
+    new_thread->ds = new_thread->s0; // + SIZE ?
+    new_thread->rs = new_thread->r0; // + SIZE ?
+    new_thread->ts = new_thread->t0;
 
     if (!current_thread) {
         current_thread   = new_thread;
@@ -111,4 +111,17 @@ void print_return_stack(void*** r0, void*** rs) {
     printf("RS: [ ");
     for (void*** p = rs; p < r0 + 64; ++p) if(p) printf("%p ", *p);
     printf("] rs-ok\n");
+}
+
+void print_thread_state(thread_state_t* t) {
+    if(!t) {
+        printf("Thread: NULL\n");
+        return;
+    }
+    printf("Thread %p:\n", t);
+    printf("  IP: %p\n", t->ip);
+    printf("  DS: %p (top: %ld)\n", t->ds, t->ds < t->s0 + 64 ? *t->ds : 0);
+    printf("  RS: %p\n", t->rs);
+    print_stack(t->s0, t->ds);
+    print_return_stack(t->r0, t->rs);
 }

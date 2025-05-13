@@ -1,5 +1,4 @@
 // #define BYTECODE(label, name, nargs, nfargs, flags, code) { name, &&l_##label, flags }
-// #include "fth_opcode_dbg.h"
 
 BYTECODE(LATEST, "latest", 0, 0, 0, { PUSH(&latest); })
 BYTECODE(JUMP, "jump", 0, 0, FLAG_HASARG, {
@@ -7,7 +6,6 @@ BYTECODE(JUMP, "jump", 0, 0, FLAG_HASARG, {
     ip = fn;
   })
 BYTECODE(CALL, "call", 0, 0, FLAG_HASARG, { 
-    // printf("calling.\n");
     void *fn = ARG();
     PUSHRS(ip);
     ip = fn;    
@@ -24,7 +22,7 @@ BYTECODE(BUITINEXEC, "exec-builtin", 1, 0, 0, {
     ip = builtin_immediatebuf;
   })
 BYTECODE(IEXEC, "iexecute", 1, 0, 0, {
-    word_hdr_t *entry = (word_hdr_t*)POP();
+    dict_hdr_t *entry = (dict_hdr_t*)POP();
     void **code = cfa(entry);
     *--nestingstack = ip;
     if(entry->flags & FLAG_BUILTIN) {
@@ -37,20 +35,19 @@ BYTECODE(IEXEC, "iexecute", 1, 0, 0, {
   })
 BYTECODE(EOW, "eow", 0, 0, 0, { /* end of word marker, do nothing */ })
 BYTECODE(HIDDEN, "hidden", 1, 0, 0, {
-    word_hdr_t *hdr = (word_hdr_t*)POP();
+    dict_hdr_t *hdr = (dict_hdr_t*)POP();
     hdr->flags ^= FLAG_HIDDEN;    
   })
 BYTECODE(TICK, "'", 0, 0, FLAG_HASARG|FLAG_IMMED, {
-    printf("ticking...\n");
     read_word(inputstate, wordbuf);
-    word_hdr_t *de = find_word(wordbuf);
+    dict_hdr_t *de = find_word(wordbuf);
     cell token;
     if(de->flags & FLAG_BUILTIN) {
       token = (cell)(*(cfa(de)));
     } else {
       token = (cell)cfa(de);
     }
-    if(state == STATE_IMMEDIATE) {
+    if(state==STATE_IMMEDIATE) {
       PUSH(token);
     } else {
       comma((cell)&&l_LIT);
@@ -427,7 +424,7 @@ BYTECODE(NEQ, "<>", 2, 0, 0, {
   })
 BYTECODE(EQZERO, "0=", 1, 0, 0, { AT(0) = AT(0)==0; })
 BYTECODE(NOTEQZERO, "0<>", 1, 0, 0, { AT(0) = AT(0)!=0; })
-BYTECODE(FIND, "find_word", 1, 0, 0, {
+BYTECODE(FIND, "find", 1, 0, 0, {
     char *wordname = (char*) POP();
     PUSH(find_word(wordname));    
   })
@@ -528,7 +525,7 @@ BYTECODE(BYTECOPY, "c@c!", 2, 0, 0, {
     AT(1) = (cell)src;
   })
 BYTECODE(TOCFA, ">cfa", 1, 0, 0, {
-    word_hdr_t *ptr = (word_hdr_t*)POP();
+    dict_hdr_t *ptr = (dict_hdr_t*)POP();
     PUSH((ptr+1));    
   })
 BYTECODE(TELL, "tell", 1, 0, 0, { fputs((char*)POP(), outp); })
@@ -611,16 +608,14 @@ BYTECODE(PARSEFNUM, "fnumber", 1, 0, 0, {
 BYTECODE(INTERPRET, "interpret", 0, 0, 0, {
     char *word = read_word(inputstate,linebuf);
     if(!word) NEXT();
-    printf("interpretting: %s\n", word);
-
-    word_hdr_t *entry = find_word(word);
+    dict_hdr_t *entry = find_word(word);
     if(!entry) {
       char *endptr = NULL;
       cell val = (cell)strtol(word, &endptr, base);
       if(*endptr!='\0') {
 	      printf("ERROR: no such word: %s\n", word);
       } else {
-	      if(state == STATE_COMPILE) {
+	      if(state==STATE_COMPILE) {
 	        comma((cell) &&l_LIT);
 	        comma(val);
 	      } else {
@@ -629,14 +624,15 @@ BYTECODE(INTERPRET, "interpret", 0, 0, 0, {
       }
       NEXT();
     }
-    if(state == STATE_COMPILE && !(entry->flags & FLAG_IMMED)) {
-        if(entry->flags & FLAG_BUILTIN) comma((cell)(*cfa(entry)));
-        else {
-	        comma((cell) &&l_CALL);
-	        comma((cell) cfa(entry));
-        }
+    if(state==STATE_COMPILE && !(entry->flags & FLAG_IMMED)) {
+      if(entry->flags & FLAG_BUILTIN) {
+	comma((cell)(*cfa(entry)));
+      } else {
+	  comma((cell) &&l_CALL);
+	  comma((cell) cfa(entry));
+      }
     } else {
-        void **code = cfa(entry);
+      void **code = cfa(entry);
       *--nestingstack = ip;
       if(entry->flags & FLAG_BUILTIN) {
 	      builtin_immediatebuf[0] = *code;
@@ -651,21 +647,21 @@ BYTECODE(IRETURN, "ireturn", 0, 0, 0, {
     ip = *nestingstack++;    
   })
 BYTECODE(OPENFILE, "open-file", 2, 0, 0, {
-    char *state = (char*)POP();
+    char *mode = (char*)POP();
     char *fn = (char*)POP();
-    PUSH(open_file(fn, state));    
+    PUSH(open_file(fn, mode));    
   })
 BYTECODE(CLOSEFILE, "close-file", 1, 0, 0, {
-    reader_state_t *rstate = (reader_state_t*)POP();
-    close_file(rstate);    
+    reader_state_t *state = (reader_state_t*)POP();
+    close_file(state);    
   })
 BYTECODE(ISEOF, "?eof", 1, 0, 0, {
-    reader_state_t *rstate = (reader_state_t*)POP();
-    PUSH(is_eof(rstate));
+    reader_state_t *state = (reader_state_t*)POP();
+    PUSH(is_eof(state));
   })
 BYTECODE(ISEOL, "?eol", 1, 0, 0, {
-    reader_state_t *rstate = (reader_state_t*)POP();
-    PUSH(is_eol(rstate));
+    reader_state_t *state = (reader_state_t*)POP();
+    PUSH(is_eol(state));
   })
 BYTECODE(PROMPT, "prompt", 2, 0, 0, {
     reader_state_t *state = (reader_state_t*)POP();
@@ -734,101 +730,101 @@ BYTECODE(FROMTMP, "t>", 0, 0, 0, { PUSH(*ts++); })
 //       char *symbol = (char*)POP();
 //       PUSH(dlFindSymbol(lib, symbol));
 //     })
-//
-BYTECODE(NEWTHREAD, "new-thread", 4, 0, 0, {
-    int ds_size = (int)POP();
-    int rs_size = (int)POP();
-    int ts_size = (int)POP();
-    void **entry = (void**)POP();
-    PUSH(create_thread(ds_size, rs_size, ts_size, entry));
-  })
-BYTECODE(KILLTHREAD, "kill-thread", 0, 0, 0, {
-    kill_thread();
+// //
+// BYTECODE(NEWTHREAD, "new-thread", 4, 0, 0, {
+//     int ds_size = (int)POP();
+//     int rs_size = (int)POP();
+//     int ts_size = (int)POP();
+//     void **entry = (void**)POP();
+//     PUSH(create_thread(ds_size, rs_size, ts_size, entry));
+//   })
+// BYTECODE(KILLTHREAD, "kill-thread", 0, 0, 0, {
+//     kill_thread();
 
-    ip = current_thread->ip;
-    ds = current_thread->ds;
-    rs = current_thread->rs;
-    ts = current_thread->ts;
-    fs = current_thread->fs;
-    t0 = current_thread->t0;
-    s0 = current_thread->s0;
-    r0 = current_thread->r0;
-    f0 = current_thread->f0;
-  })
-BYTECODE(SWITCHTHREAD, "pause", 0, 0, 0, {
-    current_thread->ip = ip;
-    current_thread->ds = ds;
-    current_thread->rs = rs;
-    current_thread->ts = ts;
-    current_thread->fs = fs;
-    current_thread->t0 = t0;
-    current_thread->s0 = s0;
-    current_thread->r0 = r0;
-    current_thread->f0 = f0;
+//     ip = current_thread->ip;
+//     ds = current_thread->ds;
+//     rs = current_thread->rs;
+//     ts = current_thread->ts;
+//     fs = current_thread->fs;
+//     t0 = current_thread->t0;
+//     s0 = current_thread->s0;
+//     r0 = current_thread->r0;
+//     f0 = current_thread->f0;
+//   })
+// BYTECODE(SWITCHTHREAD, "pause", 0, 0, 0, {
+//     current_thread->ip = ip;
+//     current_thread->ds = ds;
+//     current_thread->rs = rs;
+//     current_thread->ts = ts;
+//     current_thread->fs = fs;
+//     current_thread->t0 = t0;
+//     current_thread->s0 = s0;
+//     current_thread->r0 = r0;
+//     current_thread->f0 = f0;
 
-    current_thread = current_thread->next;
+//     current_thread = current_thread->next;
 
-    ip = current_thread->ip;
-    ds = current_thread->ds;
-    rs = current_thread->rs;
-    ts = current_thread->ts;
-    fs = current_thread->fs;
-    t0 = current_thread->t0;
-    s0 = current_thread->s0;
-    r0 = current_thread->r0;
-    f0 = current_thread->f0;
-  })
-BYTECODE(SETFS, "fsp!", 1, 0, 0, {
-    fs = (float*)POP();
-  })
-BYTECODE(GETFS, "fsp@", 0, 0, 0, {
-    PUSH(fs);
-  })
-BYTECODE(FADD, "f+", 0, 2, 0, {
-    float b = FPOP();
-    float a = FPOP();
-    FPUSH(a+b);
-  })
-BYTECODE(FSUB, "f-", 0, 2, 0, {
-    float b = FPOP();
-    float a = FPOP();
-    FPUSH(a-b);
-  })
-BYTECODE(FMUL, "f*", 0, 2, 0, {
-    float b = FPOP();
-    float a = FPOP();
-    FPUSH(a*b);
-  })
-BYTECODE(FDIV, "f/", 0, 2, 0, {
-    float b = FPOP();
-    float a = FPOP();
-    FPUSH(a/b);
-  })
+//     ip = current_thread->ip;
+//     ds = current_thread->ds;
+//     rs = current_thread->rs;
+//     ts = current_thread->ts;
+//     fs = current_thread->fs;
+//     t0 = current_thread->t0;
+//     s0 = current_thread->s0;
+//     r0 = current_thread->r0;
+//     f0 = current_thread->f0;
+//   })
+// BYTECODE(SETFS, "fsp!", 1, 0, 0, {
+//     fs = (float*)POP();
+//   })
+// BYTECODE(GETFS, "fsp@", 0, 0, 0, {
+//     PUSH(fs);
+//   })
+// BYTECODE(FADD, "f+", 0, 2, 0, {
+//     float b = FPOP();
+//     float a = FPOP();
+//     FPUSH(a+b);
+//   })
+// BYTECODE(FSUB, "f-", 0, 2, 0, {
+//     float b = FPOP();
+//     float a = FPOP();
+//     FPUSH(a-b);
+//   })
+// BYTECODE(FMUL, "f*", 0, 2, 0, {
+//     float b = FPOP();
+//     float a = FPOP();
+//     FPUSH(a*b);
+//   })
+// BYTECODE(FDIV, "f/", 0, 2, 0, {
+//     float b = FPOP();
+//     float a = FPOP();
+//     FPUSH(a/b);
+//   })
 // BYTECODE(POWF, "powf", 0, 2, 0, {
 //     float b = FPOP();
 //     float a = FPOP();
 //     FPUSH(powf(a,b));
 //   })
-BYTECODE(FLT, "f<", 0, 2, 0, {
-    float b = FPOP();
-    float a = FPOP();
-    PUSH(a<b);
-  })
-BYTECODE(FGT, "f>", 0, 2, 0, {
-    float b = FPOP();
-    float a = FPOP();
-    PUSH(a>b);
-  })
-BYTECODE(FLE, "f<=", 0, 2, 0, {
-    float b = FPOP();
-    float a = FPOP();
-    PUSH(a<=b);
-  })
-BYTECODE(FGE, "f>=", 0, 2, 0, {
-    float b = FPOP();
-    float a = FPOP();
-    PUSH(a>=b);
-  })
+// BYTECODE(FLT, "f<", 0, 2, 0, {
+//     float b = FPOP();
+//     float a = FPOP();
+//     PUSH(a<b);
+//   })
+// BYTECODE(FGT, "f>", 0, 2, 0, {
+//     float b = FPOP();
+//     float a = FPOP();
+//     PUSH(a>b);
+//   })
+// BYTECODE(FLE, "f<=", 0, 2, 0, {
+//     float b = FPOP();
+//     float a = FPOP();
+//     PUSH(a<=b);
+//   })
+// BYTECODE(FGE, "f>=", 0, 2, 0, {
+//     float b = FPOP();
+//     float a = FPOP();
+//     PUSH(a>=b);
+//   })
 // BYTECODE(FABS, "fabs", 0, 1, 0, {
 //     float a = FPOP();
 //     FPUSH(fabs(a));
@@ -882,98 +878,98 @@ BYTECODE(FGE, "f>=", 0, 2, 0, {
 //     cell a = POP();
 //     FPUSH(a);
 //   })
-BYTECODE(V3ADD, "v3+", 0, 6, 0, {
-    FAT(3) += FAT(0);
-    FAT(4) += FAT(1);
-    FAT(5) += FAT(2);
-    fs+=3;
-  })
-BYTECODE(V3SUB, "v3-", 0, 6, 0, {
-    FAT(3) -= FAT(0);
-    FAT(4) -= FAT(1);
-    FAT(5) -= FAT(2);
-    fs+=3;
-  })
-BYTECODE(V3SCALARMULT, "v3s*", 0, 4, 0, {
-    FAT(1) *= FAT(0);
-    FAT(2) *= FAT(0);
-    FAT(3) *= FAT(0);
-    fs+=1;
-  })
-BYTECODE(V3SCALARDIV, "v3s/", 0, 4, 0, {
-    FAT(1) /= FAT(0);
-    FAT(2) /= FAT(0);
-    FAT(3) /= FAT(0);
-    fs+=1;
-  })
-BYTECODE(V3DOT, "v3dot", 0, 6, 0, {
-    float result = FAT(0)*FAT(3) + FAT(1)*FAT(4) + FAT(2)*FAT(5);
-    fs+=6;
-    FPUSH(result);
-  })
-BYTECODE(V3LENSQUARED, "v3len^2", 0, 3, 0, {
-    float result = FAT(0)*FAT(0) + FAT(1)*FAT(1) + FAT(2)*FAT(2);
-    fs+=3;
-    FPUSH(result);
-  })
-BYTECODE(V3CROSS, "v3cross", 0, 6, 0, {
-    float a1 = FAT(5);
-    float a2 = FAT(4);
-    float a3 = FAT(3);
-    float b1 = FAT(2);
-    float b2 = FAT(1);
-    float b3 = FAT(0);
-    fs += 6;
-    FPUSH(a2*b3 - a3*b2);
-    FPUSH(a3*b1 - a1*b3);
-    FPUSH(a1*b2 - a2*b1);
-  })
-BYTECODE(M33VMUL, "matvec3*", 0, 12, 0, {
-    float a1 = FAT(11)*FAT(2) + FAT(10)*FAT(1) + FAT(9)*FAT(0);
-    float a2 = FAT(8)*FAT(2) + FAT(7)*FAT(1) + FAT(6)*FAT(0);
-    float a3 = FAT(5)*FAT(2) + FAT(4)*FAT(1) + FAT(3)*FAT(0);
-    fs += 12;
-    FPUSH(a1);
-    FPUSH(a2);
-    FPUSH(a3);
-  })
-BYTECODE(M33M33MUL, "matmat*", 0, 18, 0, {
-    // m11 m12 m13 m21 m22 m23 m31 m32 m33
-    // 8   7   6   5   4   3   2   1   0   
-    // m11 m12 m13 m21 m22 m23 m31 m32 m33
-    // 17  16  15  14  13  12  11  10  9
-    float m11 = FAT(17)*FAT(8) + FAT(16)*FAT(5) + FAT(15)*FAT(2);
-    float m12 = FAT(17)*FAT(7) + FAT(16)*FAT(4) + FAT(15)*FAT(1);
-    float m13 = FAT(17)*FAT(6) + FAT(16)*FAT(3) + FAT(15)*FAT(0);
+// BYTECODE(V3ADD, "v3+", 0, 6, 0, {
+//     FAT(3) += FAT(0);
+//     FAT(4) += FAT(1);
+//     FAT(5) += FAT(2);
+//     fs+=3;
+//   })
+// BYTECODE(V3SUB, "v3-", 0, 6, 0, {
+//     FAT(3) -= FAT(0);
+//     FAT(4) -= FAT(1);
+//     FAT(5) -= FAT(2);
+//     fs+=3;
+//   })
+// BYTECODE(V3SCALARMULT, "v3s*", 0, 4, 0, {
+//     FAT(1) *= FAT(0);
+//     FAT(2) *= FAT(0);
+//     FAT(3) *= FAT(0);
+//     fs+=1;
+//   })
+// BYTECODE(V3SCALARDIV, "v3s/", 0, 4, 0, {
+//     FAT(1) /= FAT(0);
+//     FAT(2) /= FAT(0);
+//     FAT(3) /= FAT(0);
+//     fs+=1;
+//   })
+// BYTECODE(V3DOT, "v3dot", 0, 6, 0, {
+//     float result = FAT(0)*FAT(3) + FAT(1)*FAT(4) + FAT(2)*FAT(5);
+//     fs+=6;
+//     FPUSH(result);
+//   })
+// BYTECODE(V3LENSQUARED, "v3len^2", 0, 3, 0, {
+//     float result = FAT(0)*FAT(0) + FAT(1)*FAT(1) + FAT(2)*FAT(2);
+//     fs+=3;
+//     FPUSH(result);
+//   })
+// BYTECODE(V3CROSS, "v3cross", 0, 6, 0, {
+//     float a1 = FAT(5);
+//     float a2 = FAT(4);
+//     float a3 = FAT(3);
+//     float b1 = FAT(2);
+//     float b2 = FAT(1);
+//     float b3 = FAT(0);
+//     fs += 6;
+//     FPUSH(a2*b3 - a3*b2);
+//     FPUSH(a3*b1 - a1*b3);
+//     FPUSH(a1*b2 - a2*b1);
+//   })
+// BYTECODE(M33VMUL, "matvec3*", 0, 12, 0, {
+//     float a1 = FAT(11)*FAT(2) + FAT(10)*FAT(1) + FAT(9)*FAT(0);
+//     float a2 = FAT(8)*FAT(2) + FAT(7)*FAT(1) + FAT(6)*FAT(0);
+//     float a3 = FAT(5)*FAT(2) + FAT(4)*FAT(1) + FAT(3)*FAT(0);
+//     fs += 12;
+//     FPUSH(a1);
+//     FPUSH(a2);
+//     FPUSH(a3);
+//   })
+// BYTECODE(M33M33MUL, "matmat*", 0, 18, 0, {
+//     // m11 m12 m13 m21 m22 m23 m31 m32 m33
+//     // 8   7   6   5   4   3   2   1   0   
+//     // m11 m12 m13 m21 m22 m23 m31 m32 m33
+//     // 17  16  15  14  13  12  11  10  9
+//     float m11 = FAT(17)*FAT(8) + FAT(16)*FAT(5) + FAT(15)*FAT(2);
+//     float m12 = FAT(17)*FAT(7) + FAT(16)*FAT(4) + FAT(15)*FAT(1);
+//     float m13 = FAT(17)*FAT(6) + FAT(16)*FAT(3) + FAT(15)*FAT(0);
 
-    float m21 = FAT(14)*FAT(8) + FAT(13)*FAT(5) + FAT(12)*FAT(2);
-    float m22 = FAT(14)*FAT(7) + FAT(13)*FAT(4) + FAT(12)*FAT(1);
-    float m23 = FAT(14)*FAT(6) + FAT(13)*FAT(3) + FAT(12)*FAT(0);
+//     float m21 = FAT(14)*FAT(8) + FAT(13)*FAT(5) + FAT(12)*FAT(2);
+//     float m22 = FAT(14)*FAT(7) + FAT(13)*FAT(4) + FAT(12)*FAT(1);
+//     float m23 = FAT(14)*FAT(6) + FAT(13)*FAT(3) + FAT(12)*FAT(0);
 
-    float m31 = FAT(11)*FAT(8) + FAT(10)*FAT(5) + FAT(9)*FAT(2);
-    float m32 = FAT(11)*FAT(7) + FAT(10)*FAT(4) + FAT(9)*FAT(1);
-    float m33 = FAT(11)*FAT(6) + FAT(10)*FAT(3) + FAT(9)*FAT(0);
+//     float m31 = FAT(11)*FAT(8) + FAT(10)*FAT(5) + FAT(9)*FAT(2);
+//     float m32 = FAT(11)*FAT(7) + FAT(10)*FAT(4) + FAT(9)*FAT(1);
+//     float m33 = FAT(11)*FAT(6) + FAT(10)*FAT(3) + FAT(9)*FAT(0);
 
-    fs += 9;
+//     fs += 9;
 
-    FAT(8) = m11; FAT(7) = m12; FAT(6) = m13;
-    FAT(5) = m21; FAT(4) = m22; FAT(3) = m23;
-    FAT(2) = m31; FAT(1) = m32; FAT(0) = m33;
-  })
-BYTECODE(STOREV3, "storev3", 1, 3, 0, {
-    float *dst = (float*)POP();
-    *dst++ = FAT(2);
-    *dst++ = FAT(1);
-    *dst = FAT(0);
-    fs += 3;
-  })
-BYTECODE(LOADV3, "loadv3", 1, 0, 0, {
-    float *src = (float*)POP();
-    fs -= 3;
-    FAT(2) = *src++;
-    FAT(1) = *src++;
-    FAT(0) = *src;
-  })
+//     FAT(8) = m11; FAT(7) = m12; FAT(6) = m13;
+//     FAT(5) = m21; FAT(4) = m22; FAT(3) = m23;
+//     FAT(2) = m31; FAT(1) = m32; FAT(0) = m33;
+//   })
+// BYTECODE(STOREV3, "storev3", 1, 3, 0, {
+//     float *dst = (float*)POP();
+//     *dst++ = FAT(2);
+//     *dst++ = FAT(1);
+//     *dst = FAT(0);
+//     fs += 3;
+//   })
+// BYTECODE(LOADV3, "loadv3", 1, 0, 0, {
+//     float *src = (float*)POP();
+//     fs -= 3;
+//     FAT(2) = *src++;
+//     FAT(1) = *src++;
+//     FAT(0) = *src;
+//   })
 // BYTECODE(DCMODE, "dcmode", 1, 0, 0, {
 //     dcMode(callvm, POP());
 //   })
